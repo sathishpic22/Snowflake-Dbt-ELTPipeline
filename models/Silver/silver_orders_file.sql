@@ -5,8 +5,7 @@ Order date: Convert YYYY-MM-DD or MM/DD/YYYY text into a date; missing or imposs
 Status: Remove surrounding spaces, convert to lowercase, change complete to completed, and turn empty values into NULL.
 Amount: Remove surrounding spaces and thousands commas, then convert to a number with two decimal places; invalid values become NULL, while negative numbers remain for later validation.
  */
-
-{{ config(materialized='view') }}
+{{ config(materialized="view") }}
 
 select
     to_varchar(order_id) as raw_order_id,
@@ -16,53 +15,26 @@ select
     to_varchar(amount) as raw_amount,
 
     case
-        when regexp_like(
-            trim(to_varchar(order_id)),
-            '^[0-9]+$'
-        )
-        then try_to_number(
-            trim(to_varchar(order_id)),
-            38,
-            0
-        )
+        when regexp_like(trim(to_varchar(order_id)), '^[0-9]+$')
+        then try_to_number(trim(to_varchar(order_id)), 38, 0)
     end as order_id,
 
     case
-        when regexp_like(
-            trim(to_varchar(customer_id)),
-            '^[0-9]+$'
-        )
-        then try_to_number(
-            trim(to_varchar(customer_id)),
-            38,
-            0
-        )
+        when regexp_like(trim(to_varchar(customer_id)), '^[0-9]+$')
+        then try_to_number(trim(to_varchar(customer_id)), 38, 0)
     end as customer_id,
 
     coalesce(
-        try_to_date(
-            trim(to_varchar(order_date)),
-            'YYYY-MM-DD'
-        ),
-        try_to_date(
-            trim(to_varchar(order_date)),
-            'MM/DD/YYYY'
-        )
+        try_to_date(trim(to_varchar(order_date)), 'YYYY-MM-DD'),
+        try_to_date(trim(to_varchar(order_date)), 'MM/DD/YYYY')
     ) as order_date,
 
     case
         when lower(trim(to_varchar(status))) = 'complete'
-            then 'completed'
-        else nullif(
-            lower(trim(to_varchar(status))),
-            ''
-        )
+        then 'completed'
+        else nullif(lower(trim(to_varchar(status))), '')
     end as status,
 
-    try_to_decimal(
-        replace(trim(to_varchar(amount)), ',', ''),
-        18,
-        2
-    ) as amount
+    try_to_decimal(replace(trim(to_varchar(amount)), ',', ''), 18, 2) as amount
 
-from {{ source('orders_raw', 'orders') }}
+from {{ source("orders_raw", "orders") }}
